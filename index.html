@@ -1,0 +1,941 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Shaden's Safe</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Shaden's Safe">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#f6f4ef">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="manifest" href="manifest.webmanifest">
+<style>
+  :root {
+    --bg: #f6f4ef; --card: #ffffff; --ink: #1d2433; --muted: #667085; --line: #e3e0d8;
+    --in: #12764f; --in-soft: #e3f3ec; --out: #b3392f; --out-soft: #f9e8e6;
+    --brand: #1f3a5f; --wait: #9a6700; --wait-soft: #fbf1d7;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; background: var(--bg); color: var(--ink); }
+  body {
+    font-family: -apple-system, "SF Arabic", "Geeza Pro", "Segoe UI", Tahoma, sans-serif;
+    font-size: 18px; line-height: 1.45;
+    padding: calc(env(safe-area-inset-top) + 12px) 16px calc(env(safe-area-inset-bottom) + 24px);
+    max-width: 520px; margin: 0 auto; min-height: 100dvh;
+  }
+  h1 { font-size: 26px; margin: 8px 0 18px; line-height: 1.3; }
+  button { font: inherit; color: inherit; border: 0; background: none; cursor: pointer; touch-action: manipulation; }
+  .num { direction: ltr; unicode-bidi: isolate; font-variant-numeric: tabular-nums; }
+
+  .topbar { display: flex; align-items: center; justify-content: space-between; min-height: 44px; margin-bottom: 4px; }
+  .link { color: var(--brand); font-weight: 600; padding: 10px 0; min-height: 44px; }
+  .muted { color: var(--muted); }
+  .small { font-size: 15px; }
+
+  .big {
+    display: block; width: 100%; min-height: 68px; padding: 14px 18px; margin-bottom: 12px;
+    background: var(--card); border: 1px solid var(--line); border-radius: 14px;
+    font-size: 21px; font-weight: 600; text-align: right;
+  }
+  .big:active { background: #efece4; }
+  .big small { display: block; font-size: 15px; font-weight: 400; color: var(--muted); }
+  .primary { background: var(--brand); border-color: var(--brand); color: #fff; text-align: center; }
+  .primary:active { background: #172c49; }
+  .primary:disabled { opacity: .55; }
+  .actions { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 18px; }
+  .act { min-height: 104px; border-radius: 16px; font-size: 24px; font-weight: 700; }
+  .act.in { background: var(--in); color: #fff; }
+  .act.out { background: var(--out); color: #fff; }
+  .act span { display: block; font-size: 15px; font-weight: 400; opacity: .9; }
+
+  .balance { background: var(--brand); color: #fff; border-radius: 16px; padding: 16px 18px; margin-bottom: 12px; }
+  .balance .label { font-size: 16px; opacity: .85; }
+  .balance .value { font-size: 28px; font-weight: 700; }
+  .split { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 6px; }
+  .mini.wide { grid-column: 1 / -1; }
+  .check-link { text-align: right; min-height: 44px; }
+  .check-card { display: flex; justify-content: space-between; gap: 12px; }
+  .check-card strong { white-space: nowrap; }
+  .pick { width: 100%; text-align: right; }
+  .pick:active { background: #efece4; }
+  .minis { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+  .mini { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 10px 14px; }
+  .mini .label { font-size: 14px; color: var(--muted); }
+  .mini .value { font-size: 19px; font-weight: 700; }
+  .negative { color: #ffc9c4; }
+  .mini .negative { color: var(--out); }
+
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; margin-bottom: 12px; }
+  .waiting { background: var(--wait-soft); border-color: #eedcae; }
+  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; }
+  .pill { min-height: 52px; border-radius: 12px; font-weight: 700; font-size: 18px; }
+  .pill.ok { background: var(--in); color: #fff; }
+  .pill.no { background: #fff; border: 1px solid var(--line); color: var(--out); }
+
+  h2 { font-size: 18px; margin: 22px 0 8px; }
+  .line {
+    display: flex; justify-content: space-between; gap: 12px; width: 100%; text-align: right;
+    padding: 12px 2px; border-bottom: 1px solid var(--line); min-height: 60px;
+  }
+  .line .who { font-weight: 600; }
+  .line .amt { font-weight: 700; white-space: nowrap; }
+  .amt.in { color: var(--in); } .amt.out { color: var(--out); }
+  .struck { text-decoration: line-through; color: var(--muted) !important; }
+  .tag { display: inline-block; font-size: 13px; font-weight: 600; padding: 1px 8px; border-radius: 99px; }
+  .tag.WAITING { background: var(--wait-soft); color: var(--wait); }
+  .tag.REJECTED, .tag.CANCELLED { background: var(--out-soft); color: var(--out); }
+
+  input, textarea {
+    font: inherit; font-size: 22px; width: 100%; padding: 14px 16px; margin-bottom: 14px;
+    border: 1px solid var(--line); border-radius: 12px; background: var(--card); color: var(--ink);
+  }
+  input.amount { font-size: 38px; font-weight: 700; text-align: center; direction: ltr; }
+  textarea { min-height: 100px; font-size: 19px; }
+  input:focus, textarea:focus, button:focus-visible { outline: 3px solid #8fb0dc; outline-offset: 1px; }
+  label { display: block; margin-bottom: 6px; font-weight: 600; }
+
+  .error { background: var(--out-soft); color: var(--out); border-radius: 12px; padding: 12px 14px; margin-bottom: 14px; font-weight: 600; }
+  .review { font-size: 25px; font-weight: 700; line-height: 1.5; }
+  .done { text-align: center; padding-top: 40px; }
+  .done .check {
+    width: 88px; height: 88px; line-height: 88px; border-radius: 50%; margin: 0 auto 18px;
+    background: var(--in); color: #fff; font-size: 48px;
+  }
+  .center { text-align: center; padding: 60px 0; }
+  .pin-dots { display: flex; justify-content: center; gap: 16px; direction: ltr; margin: 18px 0 24px; }
+  .pin-dots i { width: 18px; height: 18px; border-radius: 50%; border: 2px solid var(--brand); }
+  .pin-dots i.on { background: var(--brand); }
+  .keypad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; direction: ltr; }
+  .keypad button { min-height: 68px; font-size: 28px; font-weight: 600; background: var(--card); border: 1px solid var(--line); border-radius: 14px; }
+  .keypad button:active { background: #efece4; }
+  .keypad .blank { visibility: hidden; }
+  .scroll { max-height: 62dvh; overflow-y: auto; }
+  dl { margin: 0; } dt { color: var(--muted); font-size: 15px; margin-top: 10px; } dd { margin: 0; font-weight: 600; }
+</style>
+</head>
+<body>
+<main id="app" aria-live="polite"></main>
+
+<script>
+// Paste the Apps Script web app URL here after deploying.
+var API_URL = 'https://script.google.com/macros/s/AKfycby9HpYKUen0L_sPKzknK7NXiVBJQZFTY2kxiC_rjjFASD_BupG7mnshpZ_DqZkZH5zG/exec';
+
+var demo = /^(localhost|127\.0\.0\.1)$/.test(location.hostname) && /[?&]demo=1/.test(location.search);
+if (demo) {
+  document.write('<script src="../dev/fake-google.js"><\/script><script src="../backend/Code.gs"><\/script><script src="../dev/demo-data.js"><\/script>');
+}
+</script>
+<script>
+var PEOPLE = { Ahmed: 'أحمد', Hesham: 'هشام', Ibrahim: 'إبراهيم', Mohamed: 'محمد' };
+var METHOD_NAMES = { CASH: 'نقدًا', BANK: 'تحويل بنكي', VODAFONE: 'فودافون كاش', CHECK: 'شيك' };
+var STATUS_NAMES = { WAITING: 'في انتظار القبول', REJECTED: 'مرفوض', CANCELLED: 'ملغى', DONE: 'تم' };
+var CATEGORY_NAMES = { EXPENSE: 'مصروف', VENDOR: 'مورد', CLIENT_BACK: 'رد مبلغ لعميل', OTHER: 'أخرى' };
+var ERRORS = {
+  WRONG_PIN: 'الرقم السري غير صحيح. يرجى المحاولة مرة أخرى.',
+  LOCKED_RESET: 'تم إيقاف الحساب. يرجى التواصل مع أحمد لإعادة تفعيله.',
+  BAD_PIN_FORMAT: 'يجب أن يتكون الرقم السري من 4 أرقام.',
+  BAD_AMOUNT: 'يرجى إدخال مبلغ صحيح أكبر من صفر.',
+  BAD_CREDITED: 'يجب أن يكون المبلغ المقيد أكبر من صفر وألا يتجاوز المبلغ المستلم.',
+  BAD_DATE: 'يرجى اختيار تاريخ الاستحقاق.',
+  NOTE_REQUIRED: 'يرجى كتابة ملاحظة توضح طبيعة هذه الحركة.',
+  REASON_REQUIRED: 'يرجى كتابة السبب.',
+  ALREADY_DONE: 'تم تعديل هذه الحركة من قبل.',
+  ALREADY_ACCEPTED: 'تم قبول المبلغ بالفعل. في حال وجود خطأ، يقوم المستلم بإعادة إرساله.',
+  BAD_CHECK: 'هذا الشيك لم يعد متاحًا. يرجى اختيار شيك آخر.',
+  CHECK_IN_USE: 'لا يمكن إلغاء هذه الحركة لأن الشيك تم تسليمه أو صرفه.',
+  BUSY: 'النظام مشغول. يرجى المحاولة بعد قليل.',
+  NO_SESSION: 'يلزم تسجيل الدخول مرة أخرى. اضغط إلغاء ثم أدخل الرقم السري.',
+  OFFLINE: 'تعذر الاتصال بالإنترنت، ولم يتم الحفظ. يرجى المحاولة مرة أخرى.',
+  DEFAULT: 'حدثت مشكلة ولم يتم الحفظ. يرجى المحاولة مرة أخرى، وإذا تكررت فيرجى التواصل مع أحمد.'
+};
+
+var state = { screen: 'loading', data: null, draft: null, error: '', busy: false };
+var pin = { name: '', value: '', first: '', mode: 'login' };
+
+function storeGet(key) { try { return localStorage.getItem(key); } catch (e) { return null; } }
+function storeSet(key, value) { try { localStorage.setItem(key, value); } catch (e) {} }
+function storeDel(key) { try { localStorage.removeItem(key); } catch (e) {} }
+
+function call(action, params) {
+  var body = Object.assign({ action: action, token: storeGet('safe-token') }, params || {});
+  if (demo) {
+    return new Promise(function (resolve) {
+      setTimeout(function () {
+        resolve(JSON.parse(doPost({ postData: { contents: JSON.stringify(body) } }).getContent()));
+      }, 250);
+    }).then(checkReply);
+  }
+  var ctrl = new AbortController();
+  var timer = setTimeout(function () { ctrl.abort(); }, 30000);
+  // text/plain keeps this a simple request, which is what Apps Script accepts.
+  return fetch(API_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(body), signal: ctrl.signal })
+    .then(function (r) { return r.json(); })
+    .catch(function () { throw { code: 'OFFLINE' }; })
+    .finally(function () { clearTimeout(timer); })
+    .then(checkReply);
+}
+
+function checkReply(reply) {
+  if (!reply.ok) throw reply;
+  return reply;
+}
+
+function errorText(err) {
+  if (err.code === 'LOCKED') {
+    var minutes = Math.max(1, Math.ceil(((err.until || 0) - Date.now()) / 60000));
+    return 'تم تجاوز عدد المحاولات المسموح به. يرجى المحاولة بعد ' + minutes + ' دقيقة.';
+  }
+  return ERRORS[err.code] || ERRORS.DEFAULT;
+}
+
+function esc(value) {
+  return String(value === null || value === undefined ? '' : value).replace(/[&<>"']/g, function (c) {
+    return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+  });
+}
+
+function money(n) {
+  return '<span class="num">' + Number(n).toLocaleString('en-US', { maximumFractionDigits: 2 }) + '</span>';
+}
+
+function personName(key) { return PEOPLE[key] || key; }
+function newRequestId() { return Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 12); }
+
+function go(screen) {
+  state.screen = screen;
+  state.error = '';
+  render();
+  window.scrollTo(0, 0);
+}
+
+/* ---------- starting up ---------- */
+
+function start() {
+  if (storeGet('safe-token')) return loadHome();
+  loadUsers();
+}
+
+function loadUsers() {
+  state.screen = 'loading';
+  render();
+  call('users').then(function (reply) {
+    state.users = reply.users;
+    go('who');
+  }).catch(function (err) {
+    state.error = errorText(err);
+    state.screen = 'retry';
+    state.retry = loadUsers;
+    render();
+  });
+}
+
+function loadHome() {
+  if (!state.data) { state.screen = 'loading'; render(); }
+  return call('bootstrap').then(function (reply) {
+    state.data = reply;
+    if (state.screen === 'loading' || state.screen === 'retry' || state.screen === 'home') go('home');
+  }).catch(function (err) {
+    if (err.code === 'NO_SESSION') {
+      storeDel('safe-token');
+      state.data = null;
+      return loadUsers();
+    }
+    if (state.data && state.screen === 'home') { state.error = errorText(err); return render(); }
+    state.error = errorText(err);
+    state.screen = 'retry';
+    state.retry = loadHome;
+    render();
+  });
+}
+
+document.addEventListener('visibilitychange', function () {
+  if (!document.hidden && state.screen === 'home') loadHome();
+});
+
+/* ---------- PIN ---------- */
+
+function pickUser(name) {
+  var user = state.users.filter(function (u) { return u.name === name; })[0];
+  pin = { name: name, value: '', first: '', mode: user.hasPin ? 'login' : 'create' };
+  go('pin');
+}
+
+function pinKey(key) {
+  if (state.busy) return;
+  if (key === 'del') pin.value = pin.value.slice(0, -1);
+  else if (pin.value.length < 4) pin.value += key;
+  state.error = '';
+  render();
+  if (pin.value.length === 4) submitPin();
+}
+
+function submitPin() {
+  if (pin.mode === 'create') {
+    pin.first = pin.value;
+    pin.value = '';
+    pin.mode = 'repeat';
+    return render();
+  }
+  if (pin.mode === 'repeat' && pin.value !== pin.first) {
+    pin.value = '';
+    pin.first = '';
+    pin.mode = 'create';
+    state.error = 'الرقمان غير متطابقين. يرجى البدء من جديد.';
+    return render();
+  }
+  state.busy = true;
+  render();
+  call(pin.mode === 'repeat' ? 'setPin' : 'login', { name: pin.name, pin: pin.value }).then(function (reply) {
+    storeSet('safe-token', reply.token);
+    state.busy = false;
+    state.screen = 'loading';
+    return loadHome();
+  }).catch(function (err) {
+    state.busy = false;
+    pin.value = '';
+    state.error = errorText(err);
+    render();
+  });
+}
+
+function logout() {
+  storeDel('safe-token');
+  state.data = null;
+  loadUsers();
+}
+
+/* ---------- the steps of a new line ---------- */
+
+function startDraft(direction) {
+  state.draft = { direction: direction, requestId: newRequestId(), note: '', search: '', amountText: '', creditedText: '' };
+  go(direction === 'IN' ? 'inFrom' : 'outFor');
+}
+
+function isHome() { return state.data.me.safe === 'HOME'; }
+
+function chooseIn(category) {
+  state.draft.category = category;
+  var next = { CLIENT: 'client', OLD_CHECK: 'client', MOHAMED: 'mohamedKind', COMPANY_CHECK: 'amount' };
+  go(next[category]);
+}
+
+function chooseMohamed(method) {
+  state.draft.method = method;
+  go(method === 'CHECK' ? 'client' : 'amount');
+}
+
+// Going back and choosing differently must not carry over a check picked earlier.
+function clearPicked() {
+  state.draft.checkId = '';
+  state.draft.checkDue = '';
+}
+
+function chooseOut(category) {
+  clearPicked();
+  state.draft.category = category;
+  var next = { PERSON: 'person', EXPENSE: 'expense', VENDOR: 'vendor', CLIENT_BACK: 'client', CASH_CHECK: 'pickCheck', OTHER: 'amount' };
+  go(next[category]);
+}
+
+function chooseClient(account, name) {
+  state.draft.account = account;
+  state.draft.party = name;
+  go(state.draft.category === 'CLIENT_BACK' ? 'returnKind' : 'amount');
+}
+
+function chooseReturn(kind) {
+  clearPicked();
+  if (kind === 'CHECK') {
+    state.draft.method = 'CHECK';
+    return go('pickCheck');
+  }
+  state.draft.method = '';
+  go('amount');
+}
+
+function chooseHeld(id) {
+  var check = state.data.checks.filter(function (c) { return c.id === id; })[0];
+  var d = state.draft;
+  d.checkId = id;
+  d.amount = check.amount;
+  d.checkClient = check.client;
+  d.checkAccount = check.account;
+  d.checkDue = check.due;
+  d.method = 'CHECK';
+  go('note');
+}
+
+function chooseVendor(account, name) {
+  state.draft.account = account;
+  state.draft.party = name;
+  state.draft.vendorName = '';
+  go('amount');
+}
+
+function typedVendor() {
+  var name = document.getElementById('vendorName').value.trim();
+  if (!name) { state.error = 'يرجى كتابة اسم المورد.'; return render(); }
+  state.draft.account = '';
+  state.draft.vendorName = name;
+  state.draft.party = name;
+  go('amount');
+}
+
+function choosePerson(name) {
+  state.draft.receiver = name;
+  state.draft.party = name;
+  go('handKind');
+}
+
+function chooseExpense(type) {
+  state.draft.expenseType = type;
+  go('amount');
+}
+
+function parseAmount(text) {
+  var western = String(text).replace(/[٠-٩]/g, function (d) { return '٠١٢٣٤٥٦٧٨٩'.indexOf(d); }).replace(/[,٬\s]/g, '').replace('٫', '.');
+  return /^\d+(\.\d{1,2})?$/.test(western) ? Number(western) : NaN;
+}
+
+function submitAmount() {
+  var text = document.getElementById('amount').value;
+  var amount = parseAmount(text);
+  state.draft.amountText = text;
+  if (!(amount > 0)) { state.error = ERRORS.BAD_AMOUNT; return render(); }
+  state.draft.amount = amount;
+  var c = state.draft.category;
+  if (c === 'PERSON' || (c === 'MOHAMED' && state.draft.method === 'CASH')) return go('note');
+  if (c === 'MOHAMED') return go('checkDue');
+  if (c === 'OLD_CHECK') {
+    state.draft.method = 'CHECK';
+    return go('checkDue');
+  }
+  if (c === 'COMPANY_CHECK') {
+    state.draft.method = 'CHECK';
+    return go('bank');
+  }
+  go('method');
+}
+
+function chooseHand(method) {
+  clearPicked();
+  state.draft.method = method;
+  go(method === 'CHECK' ? 'pickCheck' : 'amount');
+}
+
+function chooseMethod(method) {
+  clearPicked();
+  state.draft.method = method;
+  if (method === 'BANK') return go('bank');
+  if (method === 'CHECK') return go('checkDue');
+  if (method === 'VODAFONE' && state.draft.direction === 'IN') return go('credited');
+  go('note');
+}
+
+function chooseBank(bank) {
+  state.draft.bank = bank;
+  go('note');
+}
+
+function submitCredited() {
+  var text = document.getElementById('credited').value;
+  var credited = parseAmount(text);
+  state.draft.creditedText = text;
+  if (!(credited > 0) || credited > state.draft.amount) { state.error = ERRORS.BAD_CREDITED; return render(); }
+  state.draft.credited = credited;
+  go('note');
+}
+
+function submitDue() {
+  var due = document.getElementById('due').value;
+  if (!due) { state.error = ERRORS.BAD_DATE; return render(); }
+  state.draft.checkDue = due;
+  go('note');
+}
+
+function submitNote() {
+  var note = document.getElementById('note').value.trim();
+  state.draft.note = note;
+  if (state.draft.category === 'OTHER' && !note) { state.error = ERRORS.NOTE_REQUIRED; return render(); }
+  go('review');
+}
+
+function saveDraft() {
+  if (state.busy) return;
+  var d = state.draft;
+  state.busy = true;
+  state.error = '';
+  render();
+  call('save', {
+    requestId: d.requestId,
+    line: {
+      direction: d.direction, category: d.category, account: d.account, vendorName: d.vendorName,
+      receiver: d.receiver, expenseType: d.expenseType, amount: d.amount, credited: d.credited,
+      method: d.method, bank: d.bank, checkDue: d.checkDue, note: d.note, checkId: d.checkId
+    }
+  }).then(function (reply) {
+    state.busy = false;
+    state.savedId = reply.id;
+    go('saved');
+    loadHomeQuietly();
+  }).catch(function (err) {
+    state.busy = false;
+    state.error = errorText(err);
+    render();
+  });
+}
+
+function loadHomeQuietly() {
+  call('bootstrap').then(function (reply) { state.data = reply; }).catch(function () {});
+}
+
+/* ---------- accept, reject, cancel ---------- */
+
+function act(action, id, reason) {
+  if (state.busy) return;
+  state.busy = true;
+  state.error = '';
+  render();
+  call(action, { id: id, reason: reason }).then(function () {
+    state.busy = false;
+    state.screen = 'home';
+    return loadHome();
+  }).catch(function (err) {
+    state.busy = false;
+    state.error = errorText(err);
+    render();
+  });
+}
+
+function openLine(id) {
+  state.openId = id;
+  state.reasonText = '';
+  go('line');
+}
+
+function currentLine() {
+  return state.data.recent.filter(function (l) { return l.id === state.openId; })[0];
+}
+
+function canCancel(line) {
+  if (line.by !== state.data.me.name) return false;
+  if (line.status === 'CANCELLED' || line.status === 'REJECTED') return false;
+  return !(line.category === 'PERSON' && line.status === 'DONE');
+}
+
+function submitReason(action) {
+  var reason = document.getElementById('reason').value.trim();
+  state.reasonText = reason;
+  if (action === 'cancel' && !reason) { state.error = ERRORS.REASON_REQUIRED; return render(); }
+  act(action, state.openId, reason);
+}
+
+function startReject(id) {
+  state.openId = id;
+  state.reasonText = '';
+  go('rejectReason');
+}
+
+/* ---------- words ---------- */
+
+function reviewSentence(d) {
+  var amount = money(d.amount) + ' جنيه';
+  if (d.category === 'COMPANY_CHECK') return 'استلمت شيكًا بمبلغ ' + amount + ' من حساب الشركة لدى ' + esc(d.bank);
+  if (d.category === 'CASH_CHECK') return 'صرفت شيك ' + esc(checkOwner(d.checkAccount, d.checkClient)) + ' بمبلغ ' + amount + ' وأضيف المبلغ إلى النقدية';
+  if (d.category === 'OLD_CHECK') return 'سجلت شيكًا سابقًا من ' + esc(d.party) + ' بمبلغ ' + amount;
+  if (d.category === 'MOHAMED' && d.method === 'CHECK') return 'استلمت من محمد شيك ' + esc(d.party) + ' بمبلغ ' + amount;
+  if (d.checkId && d.category === 'PERSON') return 'أرسلت شيك ' + esc(checkOwner(d.checkAccount, d.checkClient)) + ' بمبلغ ' + amount + ' إلى ' + esc(personName(d.party));
+  if (d.checkId) return 'رددت شيكًا بمبلغ ' + amount + ' إلى العميل ' + esc(d.party);
+  var how = d.method === 'BANK' ? 'بتحويل بنكي عبر ' + esc(d.bank) : d.method === 'CHECK' ? 'بشيك' :
+    d.method === 'VODAFONE' ? 'عبر فودافون كاش' : 'نقدًا';
+  if (d.direction === 'IN') {
+    return 'استلمت ' + amount + ' ' + how + ' من ' + esc(personName(d.party || 'Mohamed'));
+  }
+  if (d.category === 'PERSON') return 'أرسلت ' + amount + ' ' + how + ' إلى ' + esc(personName(d.party));
+  if (d.category === 'EXPENSE') return 'دفعت ' + amount + ' ' + how + ' مصروف: ' + esc(d.expenseType);
+  if (d.category === 'VENDOR') return 'دفعت ' + amount + ' ' + how + ' للمورد ' + esc(d.party);
+  if (d.category === 'CLIENT_BACK') return 'رددت ' + amount + ' ' + how + ' للعميل ' + esc(d.party);
+  return 'دفعت ' + amount + ' ' + how + ': ' + esc(d.note);
+}
+
+// The Arabic client name when there is one. A company check has no client account.
+function checkOwner(account, name) {
+  if (!account) return 'حساب الشركة';
+  var client = state.data.clients.filter(function (c) { return c.account === account; })[0];
+  return client && client.arabic ? client.arabic : name;
+}
+
+function dueTag(due) {
+  if (!due) return '';
+  var now = new Date();
+  var day = function (d) { return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2); };
+  var tomorrow = new Date(now.getTime() + 86400000);
+  if (due <= day(now)) return '<span class="tag CANCELLED">مستحق</span>';
+  if (due === day(tomorrow)) return '<span class="tag WAITING">يستحق غدًا</span>';
+  return '';
+}
+
+function lineTitle(line) {
+  if (line.category === 'PERSON') {
+    return line.receiver === state.data.me.name ? 'من ' + personName(line.by) : 'إلى ' + personName(line.receiver);
+  }
+  if (line.category === 'COMPANY_CHECK') return 'شيك من حساب الشركة';
+  if (line.category === 'CASH_CHECK') return 'صرف شيك: ' + line.checkClient;
+  if (line.category === 'EXPENSE') return line.expenseType;
+  if (line.category === 'OTHER') return CATEGORY_NAMES.OTHER;
+  return personName(line.party);
+}
+
+function lineFlow(line) {
+  var me = state.data.me.name;
+  if (line.category === 'PERSON') return line.receiver === me ? 'in' : (line.by === me ? 'out' : (line.direction === 'OUT' ? 'out' : 'in'));
+  return line.direction === 'IN' ? 'in' : 'out';
+}
+
+/* ---------- screens ---------- */
+
+function bar(backTo) {
+  return '<div class="topbar"><button class="link" data-do="back" data-to="' + backTo + '">رجوع</button>' +
+    '<button class="link" data-do="home">إلغاء</button></div>';
+}
+
+function errorBox() {
+  return state.error ? '<div class="error" role="alert">' + esc(state.error) + '</div>' : '';
+}
+
+var screens = {
+  loading: function () { return '<div class="center muted">جارٍ التحميل...</div>'; },
+
+  retry: function () {
+    return '<div class="center"><div class="error">' + esc(state.error) + '</div>' +
+      '<button class="big primary" data-do="retry">إعادة المحاولة</button></div>';
+  },
+
+  who: function () {
+    return '<h1>من يستخدم هذا الهاتف؟</h1>' + state.users.map(function (u) {
+      return '<button class="big" data-do="pickUser" data-v="' + esc(u.name) + '">' + esc(personName(u.name)) + '</button>';
+    }).join('');
+  },
+
+  pin: function () {
+    var title = pin.mode === 'login' ? 'أدخل الرقم السري' : pin.mode === 'create' ? 'اختر رقمًا سريًا من 4 أرقام' : 'أعد إدخال الرقم للتأكيد';
+    var dots = [0, 1, 2, 3].map(function (i) { return '<i class="' + (i < pin.value.length ? 'on' : '') + '"></i>'; }).join('');
+    var keys = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '', '0', 'del'].map(function (k) {
+      if (!k) return '<button class="blank" tabindex="-1" aria-hidden="true"></button>';
+      return '<button data-do="pinKey" data-v="' + k + '"' + (k === 'del' ? ' aria-label="مسح"' : '') + '>' + (k === 'del' ? '⌫' : k) + '</button>';
+    }).join('');
+    return '<div class="topbar"><button class="link" data-do="backToUsers">رجوع</button><span class="muted">' + esc(personName(pin.name)) + '</span></div>' +
+      '<h1 style="text-align:center">' + title + '</h1>' + errorBox() +
+      '<div class="pin-dots" role="img" aria-label="' + pin.value.length + ' من 4">' + dots + '</div>' +
+      '<div class="keypad">' + keys + '</div>' +
+      (state.busy ? '<p class="center muted small" style="padding:16px 0">جارٍ تسجيل الدخول...</p>' : '');
+  },
+
+  home: function () {
+    var d = state.data;
+    var mine = d.balances[d.me.safe];
+    var html = '<div class="topbar"><strong>أهلاً ' + esc(personName(d.me.name)) + '</strong>' +
+      '<button class="link small" data-do="logout">تغيير المستخدم</button></div>' + errorBox();
+    html += '<div class="actions"><button class="act in" data-do="start" data-v="IN">استلام<span>Cash In</span></button>' +
+      '<button class="act out" data-do="start" data-v="OUT">دفع<span>Cash Out</span></button></div>';
+    html += '<div class="balance"><div class="label">' + (isHome() ? 'خزينة المنزل' : 'خزينتك') + '</div>' +
+      '<div class="split"><div><div class="label">نقدية</div><div class="value ' + (mine.cash < 0 ? 'negative' : '') + '">' + money(mine.cash) + '</div></div>' +
+      '<button class="check-link" data-do="showChecks" data-v="' + esc(d.me.safe) + '"><div class="label">شيكات ›</div><div class="value">' + money(mine.checks) + '</div></button></div></div>';
+    if (isHome()) {
+      var ib = d.balances.IBRAHIM;
+      html += '<div class="minis"><div class="mini"><div class="label">إبراهيم: نقدية</div><div class="value ' + (ib.cash < 0 ? 'negative' : '') + '">' + money(ib.cash) + '</div></div>' +
+        '<button class="mini check-link" data-do="showChecks" data-v="IBRAHIM"><div class="label">إبراهيم: شيكات ›</div><div class="value">' + money(ib.checks) + '</div></button>' +
+        '<div class="mini wide"><div class="label">إجمالي المستلم من محمد</div><div class="value">' + money(d.fromMohamed) + '</div></div></div>';
+    }
+    d.waitingForMe.forEach(function (l) {
+      html += '<div class="card waiting"><strong>' + esc(personName(l.by)) + ' أرسل إليك ' + (l.method === 'CHECK' ? 'شيكًا بمبلغ ' + money(l.amount) + ' جنيه' : money(l.amount) + ' جنيه نقدًا') + '</strong>' +
+        (l.method === 'CHECK' ? '<div class="small">' + esc(l.checkClient) + (l.checkDue ? ' · الاستحقاق: <span class="num">' + esc(l.checkDue) + '</span>' : '') + '</div>' : '') +
+        (l.note ? '<div class="small">' + esc(l.note) + '</div>' : '') +
+        '<div class="row2"><button class="pill ok" data-do="accept" data-v="' + esc(l.id) + '"' + (state.busy ? ' disabled' : '') + '>استلمت</button>' +
+        '<button class="pill no" data-do="startReject" data-v="' + esc(l.id) + '"' + (state.busy ? ' disabled' : '') + '>لم أستلم</button></div></div>';
+    });
+    html += '<h2>آخر الحركات</h2>';
+    if (!d.recent.length) html += '<p class="muted">لا توجد حركات حتى الآن.</p>';
+    d.recent.forEach(function (l) {
+      var flow = lineFlow(l);
+      var off = l.status === 'CANCELLED' || l.status === 'REJECTED';
+      var sub = (isHome() ? esc(personName(l.by)) + ' · ' : '') + esc(METHOD_NAMES[l.method] || '') + ' · <span class="num">' + esc(l.created) + '</span>';
+      html += '<button class="line" data-do="openLine" data-v="' + esc(l.id) + '"><span><span class="who">' + esc(lineTitle(l)) + '</span>' +
+        (l.status !== 'DONE' ? ' <span class="tag ' + esc(l.status) + '">' + esc(STATUS_NAMES[l.status]) + '</span>' : '') +
+        '<br><span class="muted small">' + sub + '</span></span>' +
+        '<span class="amt ' + flow + (off ? ' struck' : '') + '">' + money(l.amount) + '</span></button>';
+    });
+    return html;
+  },
+
+  inFrom: function () {
+    return bar('home') + '<h1>ممن استلمت المبلغ؟</h1>' +
+      (isHome() ? '<button class="big" data-do="chooseIn" data-v="MOHAMED">محمد</button>' : '') +
+      '<button class="big" data-do="chooseIn" data-v="CLIENT">عميل</button>' +
+      '<button class="big" data-do="chooseIn" data-v="OLD_CHECK">شيك عميل مسجل سابقًا<small>مخصوم بالفعل من رصيد العميل</small></button>' +
+      '<button class="big" data-do="chooseIn" data-v="COMPANY_CHECK">شيك من حساب الشركة<small>لصرفه نقدًا لصالح الشركة</small></button>';
+  },
+
+  mohamedKind: function () {
+    return bar('inFrom') + '<h1>ماذا استلمت من محمد؟</h1>' +
+      '<button class="big" data-do="chooseMohamed" data-v="CASH">نقدية</button>' +
+      '<button class="big" data-do="chooseMohamed" data-v="CHECK">شيك عميل</button>';
+  },
+
+  returnKind: function () {
+    return bar('client') + '<h1>ماذا ترد إلى العميل؟</h1>' +
+      '<button class="big" data-do="chooseReturn" data-v="MONEY">مبلغ</button>' +
+      '<button class="big" data-do="chooseReturn" data-v="CHECK">شيك</button>';
+  },
+
+  pickCheck: function () {
+    var d = state.draft;
+    var back = d.category === 'PERSON' ? 'handKind' : d.category === 'CLIENT_BACK' ? 'returnKind' : 'outFor';
+    var mine = state.data.checks.filter(function (c) {
+      return c.safe === state.data.me.safe && !c.waitingTo && (d.category !== 'CLIENT_BACK' || c.account === d.account);
+    });
+    return bar(back) + '<h1>اختر الشيك</h1>' +
+      (mine.length ? '' : '<p class="muted">لا توجد شيكات متاحة.</p>') +
+      mine.map(function (c) {
+        return '<button class="card pick" data-do="chooseHeld" data-v="' + esc(c.id) + '"><span class="check-card"><span>' + esc(checkOwner(c.account, c.client)) + ' ' + dueTag(c.due) +
+          '<br><span class="muted small">' + (c.due ? 'الاستحقاق: <span class="num">' + esc(c.due) + '</span>' : esc(c.bank)) + '</span></span>' +
+          '<strong>' + money(c.amount) + '</strong></span></button>';
+      }).join('');
+  },
+
+  checks: function () {
+    var safe = state.checksSafe;
+    var list = state.data.checks.filter(function (c) { return c.safe === safe; });
+    var total = list.reduce(function (sum, c) { return sum + c.amount; }, 0);
+    var title = safe === 'IBRAHIM' ? (state.data.me.safe === 'IBRAHIM' ? 'شيكاتك' : 'شيكات إبراهيم') : 'شيكات خزينة المنزل';
+    return '<div class="topbar"><button class="link" data-do="go" data-v="home">رجوع</button></div>' +
+      '<h1>' + title + '</h1><p class="muted">' + list.length + ' شيك · الإجمالي ' + money(total) + ' جنيه</p>' +
+      (list.length ? '' : '<p class="muted">لا توجد شيكات.</p>') +
+      list.map(function (c) {
+        return '<div class="card"><div class="check-card"><span>' + esc(checkOwner(c.account, c.client)) + ' ' + dueTag(c.due) +
+          (c.waitingTo ? ' <span class="tag WAITING">في انتظار قبول ' + esc(personName(c.waitingTo)) + '</span>' : '') +
+          '<br><span class="muted small">' + (c.due ? 'الاستحقاق: <span class="num">' + esc(c.due) + '</span>' : esc(c.bank)) + '</span></span>' +
+          '<strong>' + money(c.amount) + '</strong></div></div>';
+      }).join('');
+  },
+
+  outFor: function () {
+    var rows = [['PERSON', 'إلى شخص', isHome() ? 'إبراهيم' : 'أحمد أو هشام'], ['EXPENSE', 'مصروف', ''], ['VENDOR', 'مورد', ''], ['CASH_CHECK', 'صرف شيك', 'ينقل قيمة الشيك إلى النقدية'], ['OTHER', 'أخرى', 'تتطلب كتابة ملاحظة']];
+    if (state.draft.showMore) rows.push(['CLIENT_BACK', 'رد مبلغ لعميل', '']);
+    return bar('home') + '<h1>ما الغرض من الدفع؟</h1>' + rows.map(function (r) {
+      return '<button class="big" data-do="chooseOut" data-v="' + r[0] + '">' + r[1] + (r[2] ? '<small>' + r[2] + '</small>' : '') + '</button>';
+    }).join('') + (state.draft.showMore ? '' : '<button class="link small" data-do="showMore">خيارات إضافية</button>');
+  },
+
+  person: function () {
+    var names = isHome() ? ['Ibrahim'] : ['Ahmed', 'Hesham'];
+    return bar('outFor') + '<h1>إلى من؟</h1>' + names.map(function (n) {
+      return '<button class="big" data-do="choosePerson" data-v="' + n + '">' + esc(personName(n)) + '</button>';
+    }).join('');
+  },
+
+  expense: function () {
+    return bar('outFor') + '<h1>ما نوع المصروف؟</h1>' + state.data.lists.expenseTypes.map(function (t) {
+      return '<button class="big" data-do="chooseExpense" data-v="' + esc(t) + '">' + esc(t) + '</button>';
+    }).join('');
+  },
+
+  client: function () {
+    var back = state.draft.direction === 'OUT' ? 'outFor' : state.draft.category === 'MOHAMED' ? 'mohamedKind' : 'inFrom';
+    return bar(back) + '<h1>ما اسم العميل؟</h1>' +
+      '<input id="search" type="search" placeholder="اكتب جزءًا من الاسم" autocomplete="off" value="' + esc(state.draft.search) + '" data-input="search">' +
+      '<div id="results" class="scroll">' + nameResults(state.data.clients, 'chooseClient') + '</div>';
+  },
+
+  vendor: function () {
+    if (!isHome()) {
+      return bar('outFor') + '<h1>ما اسم المورد؟</h1>' + errorBox() +
+        '<input id="vendorName" autocomplete="off" value="' + esc(state.draft.vendorName || '') + '">' +
+        '<button class="big primary" data-do="typedVendor">التالي</button>';
+    }
+    return bar('outFor') + '<h1>ما اسم المورد؟</h1>' + errorBox() +
+      '<input id="search" type="search" placeholder="اكتب جزءًا من الاسم" autocomplete="off" value="' + esc(state.draft.search) + '" data-input="search">' +
+      '<div id="results" class="scroll">' + nameResults(state.data.vendors, 'chooseVendor') + '</div>' +
+      '<label for="vendorName" style="margin-top:16px">إذا لم يكن الاسم في القائمة، فاكتبه هنا:</label>' +
+      '<input id="vendorName" autocomplete="off" value="' + esc(state.draft.vendorName || '') + '">' +
+      '<button class="big" data-do="typedVendor">استخدام هذا الاسم</button>';
+  },
+
+  amount: function () {
+    var d = state.draft;
+    var back = d.direction === 'IN' ?
+      { CLIENT: 'client', OLD_CHECK: 'client', COMPANY_CHECK: 'inFrom', MOHAMED: d.method === 'CHECK' ? 'client' : 'mohamedKind' }[d.category] :
+      { PERSON: 'handKind', EXPENSE: 'expense', VENDOR: 'vendor', CLIENT_BACK: 'returnKind', OTHER: 'outFor' }[d.category];
+    return bar(back) + '<h1>ما المبلغ؟</h1>' + errorBox() +
+      '<input class="amount" id="amount" inputmode="decimal" autocomplete="off" placeholder="0" value="' + esc(d.amountText) + '">' +
+      '<button class="big primary" data-do="submitAmount">التالي</button>';
+  },
+
+  handKind: function () {
+    return bar('person') + '<h1>نقدية أم شيك؟</h1>' +
+      '<button class="big" data-do="chooseHand" data-v="CASH">نقدًا</button>' +
+      '<button class="big" data-do="chooseHand" data-v="CHECK">شيك</button>';
+  },
+
+  method: function () {
+    // A check returned to a client is chosen from the held checks, not typed.
+    var rows = state.draft.category === 'CLIENT_BACK' ? ['CASH', 'BANK', 'VODAFONE'] : ['CASH', 'BANK', 'VODAFONE', 'CHECK'];
+    return bar('amount') + '<h1>ما طريقة الدفع؟</h1>' + rows.map(function (m) {
+      return '<button class="big" data-do="chooseMethod" data-v="' + m + '">' + METHOD_NAMES[m] + '</button>';
+    }).join('');
+  },
+
+  bank: function () {
+    return bar(state.draft.category === 'COMPANY_CHECK' ? 'amount' : 'method') + '<h1>أي بنك؟</h1>' + state.data.lists.banks.map(function (b) {
+      return '<button class="big" data-do="chooseBank" data-v="' + esc(b) + '">' + esc(b) + '</button>';
+    }).join('');
+  },
+
+  credited: function () {
+    return bar('method') + '<h1>ما المبلغ المقيد بعد الرسوم؟</h1>' +
+      '<p class="muted">مثال: استلام 15,150 وقيد 15,000 لحساب العميل</p>' + errorBox() +
+      '<input class="amount" id="credited" inputmode="decimal" autocomplete="off" placeholder="0" value="' + esc(state.draft.creditedText) + '">' +
+      '<button class="big primary" data-do="submitCredited">التالي</button>';
+  },
+
+  checkDue: function () {
+    var c = state.draft.category;
+    return bar(c === 'OLD_CHECK' || c === 'MOHAMED' ? 'amount' : 'method') + '<h1>ما تاريخ استحقاق الشيك؟</h1>' + errorBox() +
+      '<input id="due" type="date" value="' + esc(state.draft.checkDue || '') + '">' +
+      '<button class="big primary" data-do="submitDue">التالي</button>';
+  },
+
+  note: function () {
+    var d = state.draft;
+    var back = d.checkId ? 'pickCheck' : d.category === 'PERSON' || (d.category === 'MOHAMED' && d.method === 'CASH') ? 'amount' :
+      d.category === 'COMPANY_CHECK' || d.method === 'BANK' ? 'bank' : d.method === 'CHECK' ? 'checkDue' :
+      (d.method === 'VODAFONE' && d.direction === 'IN') ? 'credited' : 'method';
+    var required = d.category === 'OTHER';
+    return bar(back) + '<h1>' + (required ? 'ملاحظة (مطلوبة)' : 'ملاحظة (اختيارية)') + '</h1>' + errorBox() +
+      '<textarea id="note" maxlength="300" placeholder="' + (required ? 'ما طبيعة هذه الحركة؟' : 'يمكن تركها فارغة') + '">' + esc(d.note) + '</textarea>' +
+      '<button class="big primary" data-do="submitNote">التالي</button>';
+  },
+
+  review: function () {
+    var d = state.draft;
+    var extra = '';
+    if (d.method === 'VODAFONE' && d.credited) extra += '<div class="muted small">المقيد لحساب العميل: ' + money(d.credited) + ' جنيه</div>';
+    if (d.checkDue) extra += '<div class="muted small">الاستحقاق: <span class="num">' + esc(d.checkDue) + '</span></div>';
+    if (d.note && d.category !== 'OTHER') extra += '<div class="muted small">' + esc(d.note) + '</div>';
+    if (d.category === 'PERSON') extra += '<div class="muted small">لن يتغير رصيد الخزينة إلا بعد قبول ' + esc(personName(d.receiver)) + '.</div>';
+    return bar('note') + '<h1>مراجعة</h1><div class="card"><div class="review">' + reviewSentence(d) + '</div>' + extra + '</div>' + errorBox() +
+      '<button class="big primary" data-do="saveDraft"' + (state.busy ? ' disabled' : '') + '>' + (state.busy ? 'جارٍ الحفظ...' : 'حفظ') + '</button>';
+  },
+
+  saved: function () {
+    return '<div class="done"><div class="check" aria-hidden="true">✓</div><h1>تم الحفظ</h1><p class="muted num">' + esc(state.savedId) + '</p>' +
+      '<button class="big primary" data-do="home">موافق</button></div>';
+  },
+
+  line: function () {
+    var l = currentLine();
+    if (!l) return bar('home') + '<p class="muted">هذه الحركة غير موجودة.</p>';
+    var rows = [['الرقم', l.id], ['التاريخ', l.created], ['سجلها', personName(l.by)], ['الطريقة', METHOD_NAMES[l.method]],
+      ['الشيك الخاص بـ', l.category === 'PERSON' || l.category === 'CASH_CHECK' ? l.checkClient : ''], ['البنك', l.bank], ['المقيد بعد الرسوم', l.credited], ['الاستحقاق', l.checkDue], ['ملاحظة', l.note],
+      ['الحالة', STATUS_NAMES[l.status]], ['السبب', l.reason]];
+    var dl = rows.filter(function (r) { return r[1] !== '' && r[1] !== null && r[1] !== undefined; }).map(function (r) {
+      return '<dt>' + r[0] + '</dt><dd>' + esc(r[1]) + '</dd>';
+    }).join('');
+    return '<div class="topbar"><button class="link" data-do="home">رجوع</button></div>' +
+      '<h1>' + esc(lineTitle(l)) + ': ' + money(l.amount) + ' جنيه</h1><div class="card"><dl>' + dl + '</dl></div>' +
+      (canCancel(l) ? '<button class="big" style="color:var(--out);text-align:center" data-do="go" data-v="cancelReason">إلغاء هذه الحركة</button>' : '');
+  },
+
+  cancelReason: function () {
+    return '<div class="topbar"><button class="link" data-do="go" data-v="line">رجوع</button></div><h1>ما سبب إلغاء هذه الحركة؟</h1>' +
+      '<p class="muted">ستظل الحركة ظاهرة مع الإشارة إلى إلغائها.</p>' + errorBox() +
+      '<textarea id="reason" maxlength="300">' + esc(state.reasonText) + '</textarea>' +
+      '<button class="big primary" data-do="submitReason" data-v="cancel"' + (state.busy ? ' disabled' : '') + '>تأكيد الإلغاء</button>';
+  },
+
+  rejectReason: function () {
+    return '<div class="topbar"><button class="link" data-do="home">رجوع</button></div><h1>ما سبب عدم الاستلام؟</h1>' + errorBox() +
+      '<textarea id="reason" maxlength="300" placeholder="يمكن تركه فارغًا">' + esc(state.reasonText) + '</textarea>' +
+      '<button class="big primary" data-do="submitReason" data-v="reject"' + (state.busy ? ' disabled' : '') + '>تأكيد الرفض</button>';
+  }
+};
+
+function normalize(text) {
+  return String(text).toLowerCase().replace(/[أإآ]/g, 'ا').replace(/ى/g, 'ي').replace(/ة/g, 'ه').trim();
+}
+
+function nameResults(list, action) {
+  var q = normalize(state.draft.search);
+  var hits = (list || []).filter(function (n) {
+    return !q || normalize(n.name).indexOf(q) >= 0 || normalize(n.arabic).indexOf(q) >= 0;
+  }).slice(0, 40);
+  if (!hits.length) return '<p class="muted">لا يوجد اسم مطابق.</p>';
+  return hits.map(function (n) {
+    return '<button class="big" style="min-height:60px;font-size:19px" data-do="' + action + '" data-v="' + esc(n.account) + '" data-name="' + esc(n.name) + '">' +
+      esc(n.arabic || n.name) + (n.arabic ? '<small>' + esc(n.name) + '</small>' : '') + '</button>';
+  }).join('');
+}
+
+function render() {
+  document.getElementById('app').innerHTML = screens[state.screen]();
+  var focus = document.querySelector('#amount, #credited');
+  if (focus) focus.focus();
+}
+
+/* ---------- taps and typing ---------- */
+
+document.addEventListener('click', function (e) {
+  var b = e.target.closest('[data-do]');
+  if (!b || b.disabled) return;
+  var v = b.getAttribute('data-v');
+  var actions = {
+    back: function () { go(b.getAttribute('data-to')); },
+    go: function () { go(v); },
+    home: function () { state.draft = null; state.screen = 'home'; state.error = ''; render(); window.scrollTo(0, 0); loadHome(); },
+    retry: function () { state.retry(); },
+    logout: logout,
+    backToUsers: function () { go('who'); },
+    pickUser: function () { pickUser(v); },
+    pinKey: function () { pinKey(v); },
+    start: function () { startDraft(v); },
+    chooseIn: function () { chooseIn(v); },
+    chooseOut: function () { chooseOut(v); },
+    choosePerson: function () { choosePerson(v); },
+    chooseExpense: function () { chooseExpense(v); },
+    chooseClient: function () { chooseClient(v, b.getAttribute('data-name')); },
+    chooseVendor: function () { chooseVendor(v, b.getAttribute('data-name')); },
+    typedVendor: typedVendor,
+    submitAmount: submitAmount,
+    showMore: function () { state.draft.showMore = true; render(); },
+    chooseHand: function () { chooseHand(v); },
+    chooseMohamed: function () { chooseMohamed(v); },
+    chooseReturn: function () { chooseReturn(v); },
+    chooseHeld: function () { chooseHeld(v); },
+    showChecks: function () { state.checksSafe = v; go('checks'); },
+    chooseMethod: function () { chooseMethod(v); },
+    chooseBank: function () { chooseBank(v); },
+    submitCredited: submitCredited,
+    submitDue: submitDue,
+    submitNote: submitNote,
+    saveDraft: saveDraft,
+    accept: function () { act('accept', v); },
+    startReject: function () { startReject(v); },
+    openLine: function () { openLine(v); },
+    submitReason: function () { submitReason(v); }
+  };
+  actions[b.getAttribute('data-do')]();
+});
+
+document.addEventListener('input', function (e) {
+  if (e.target.getAttribute('data-input') !== 'search') return;
+  state.draft.search = e.target.value;
+  var isVendor = state.screen === 'vendor';
+  document.getElementById('results').innerHTML = nameResults(isVendor ? state.data.vendors : state.data.clients, isVendor ? 'chooseVendor' : 'chooseClient');
+});
+
+start();
+</script>
+</body>
+</html>
